@@ -7,6 +7,7 @@
 #include "assembler/assembler.h"
 
 #include "processorhandler.h"
+#include <iostream>
 
 using namespace Ripes;
 using namespace Assembler;
@@ -65,9 +66,9 @@ private:
 
   enum class Expect { Fail, Success };
   void testAssemble(const QStringList &program, Expect expect,
-                    QByteArray expectData = {}) {
+                    QByteArray expectData = {}, QStringList extensions = {}) {
     QString err;
-    auto isa = std::make_shared<ISAInfo<ISA::RV32I>>(QStringList());
+    auto isa = std::make_shared<ISAInfo<ISA::RV32I>>(extensions);
     auto assembler = ISA_Assembler<ISA::RV32I>(isa);
     auto res = assembler.assemble(program);
     if ((res.errors.size() != 0) ^ (expect == Expect::Fail)) {
@@ -279,7 +280,42 @@ void tst_Assembler::tst_immBitRange() {
   // pseudo: 32 bits imm
   testAssemble(QStringList() << "li    a0 0xFFFFFFFF", Expect::Success);
   testAssemble(QStringList() << "li    a0 0x100000000", Expect::Fail);
-  // TODO: 64b and [CM]-ext
+
+  testAssemble(
+      QStringList()
+          << "c.lwsp      a0 0x0FF"     // TypeCI: 6 bits (ImmLwsp)
+          << "c.li        a0 0x3F(x0)"  // TypeCI: 6 bits (ImmCommon6_S)
+          << "c.slli      a0 0x3F(x0)"  // TypeCI: 6 bits (ImmCommon6_U)
+          << "c.addi16sp  0x3F"         // TypeCI: 6 bits (CAddi16Sp::Imm)
+          << "c.lui       a0 0x3F"      // TypeCI: 6 bits (ImmLui)
+          << "c.swsp      a0 0x0FF(x0)" // TypeCSS: 8 bits (ImmSwsp)
+          << "c.lw        a0 x0 0x7F"   // TypeC[LS]: 7 bits (ImmCommon7_S)
+          << "c.j         0x7FF"        // TypeCJ: 11 bits (TypeCJ::Instr::Imm)
+          << "c.beqz      a0 0x0FF"     // TypeCB: 8 bits (TypeCB::Instr::Imm)
+          << "c.srli      a0 0x3F"      // TypeCB2: 6 bits (TypeCB2::Instr::Imm)
+      ,
+      Expect::Success, {}, {"C"});
+
+  // CI-type: 6 bits imm (ImmLwsp)
+  testAssemble(QStringList() << "c.lwsp a0 0x100", Expect::Fail, {}, {"C"});
+  // CI-type: 6 bits imm (ImmCommon6_S, ImmCommon6_U, Imm of CAddi16Sp)
+  testAssemble(QStringList() << "c.li   a0 0x40(x0)", Expect::Fail, {}, {"C"});
+  testAssemble(QStringList() << "c.slli a0 0x40(x0)", Expect::Fail, {}, {"C"});
+  testAssemble(QStringList() << "c.addi16sp 0x40", Expect::Fail, {}, {"C"});
+  // CI-type: 6 bits imm (ImmLui)
+  testAssemble(QStringList() << "c.lui  a0 0x40", Expect::Fail, {}, {"C"});
+  // CSS-type: 8 bits imm (ImmSwsp)
+  testAssemble(QStringList() << "c.swsp a0 0x100(x0)", Expect::Fail, {}, {"C"});
+  // C[LS]-type: 7 bits imm (ImmCommon7_S) // FIXME: syntax error?
+  testAssemble(QStringList() << "c.lw   a0 x0 0x80", Expect::Fail, {}, {"C"});
+  // CJ-type: 11 bits imm (Imm of ExtC::TypeCJ)
+  testAssemble(QStringList() << "c.j       0x800", Expect::Fail, {}, {"C"});
+  // CB-type: 8 bits imm (Imm of ExtC::TypeCB)
+  testAssemble(QStringList() << "c.beqz a0 0x100", Expect::Fail, {}, {"C"});
+  // CB2-type: 6 bits imm (Imm of ExtC::TypeCB2::Instr)
+  // FIXME: should fail?
+  testAssemble(QStringList() << "c.srli a0 0x40", Expect::Fail, {}, {"C"});
+  // TODO: 64b instructions (ImmIShift64, ImmLdsp, ImmSdsp, ImmLd)
 }
 
 void tst_Assembler::tst_benchmarkNew() {

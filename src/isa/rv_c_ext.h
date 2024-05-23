@@ -294,7 +294,7 @@ struct CLi
 ///  - Imm[16:12] = Inst[6:2]
 ///  - Imm[12:0]  = 0
 template <unsigned tokenIndex>
-struct ImmLui : public Imm<tokenIndex, 18, Repr::Signed,
+struct ImmLui : public Imm<tokenIndex, 18, Repr::Signed, // FIXME
                            ImmPartSet<ImmPart<17, 12, 12>, ImmPart<12, 2, 6>>> {
   static_assert(tokenIndex == VALID_INDEX, "Invalid token index");
 };
@@ -313,7 +313,7 @@ struct CAddi16Sp : public RVC_Instruction<CAddi16Sp> {
   template <unsigned tokenIndex>
   struct Imm
       : public Ripes::Imm<
-            tokenIndex, 10, Repr::Signed,
+            tokenIndex, 10, Repr::Signed, // FIXME
             ImmPartSet<ImmPart<9, 12, 12>, ImmPart<7, 3, 4>, ImmPart<5, 2, 2>,
                        ImmPart<4, 6, 6>, ImmPart<6, 5, 5>>> {
     constexpr static unsigned VALID_INDEX = 0;
@@ -513,7 +513,7 @@ struct Instr : public RVC_Instruction<InstrImpl> {
   ///  - Imm[0]   = 0
   template <unsigned tokenIndex>
   struct Imm
-      : public Ripes::Imm<tokenIndex, 12, Repr::Signed,
+      : public Ripes::Imm<tokenIndex, 11, Repr::Signed, // FIXME
                           ImmPartSet<ImmPart<11, 12, 12>, ImmPart<10, 8, 8>,
                                      ImmPart<8, 9, 10>, ImmPart<7, 6, 6>,
                                      ImmPart<6, 7, 7>, ImmPart<5, 2, 2>,
@@ -558,7 +558,7 @@ struct Instr : public RVC_Instruction<InstrImpl> {
   template <unsigned tokenIndex>
   struct Imm
       : public Ripes::Imm<
-            tokenIndex, 9, Repr::Signed,
+            tokenIndex, 9, Repr::Signed, // FIXME
             ImmPartSet<ImmPart<8, 12, 12>, ImmPart<6, 5, 6>, ImmPart<5, 2, 2>,
                        ImmPart<3, 10, 11>, ImmPart<1, 3, 4>>> {
     static_assert(tokenIndex == VALID_INDEX, "Invalid token index");
